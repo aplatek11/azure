@@ -1,0 +1,14 @@
+//When a production Logic App is deleted
+AzureActivity
+| where ResourceProvider == "Microsoft.Logic"
+| where OperationName == "Delete Workflow"
+| where Resource startswith "TEST-"
+| where ActivityStatus == "Succeeded"
+    and ActivitySubstatusValue <> ""
+| distinct TimeGenerated
+        , ActivityStatus
+        , ActivitySubstatusValue
+        , ResourceGroup
+        , Caller
+        , ResourceProvider
+        , Resource
