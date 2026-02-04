@@ -1,0 +1,91 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "deploymentEnvironment": {
+            "value": "DEV"
+        },
+        "dataCollectionEndpointId": {
+            "value": "/subscriptions/5b09a9ef-0878-420c-9dd3-f1fadb37b93e/resourceGroups/csy-sentinel-dev-rg/providers/Microsoft.Insights/dataCollectionEndpoints/tmna-dev-dce"
+        },
+        "dataCollectionRuleName": {
+            // Update!
+            "value": ""
+        },
+        "streamName": {
+            // Update!
+            "value": ""
+        },
+        "streamDestinationName": {
+            // Update!
+            "value": ""
+        },
+        "streamDeclarations": {
+            "value": {
+                // Update!
+                "Custom-dev-<RSOC>-<vendor>-<product>-stream": {
+                    // Update!
+                    "columns": [
+                        {
+                            "name": "Activity",
+                            "type": "string"
+                        },
+                        {
+                            "name": "AdditionalExtensions",
+                            "type": "string"
+                        },
+                        {
+                            "name": "TimeGenerated",
+                            "type": "string"
+                        }
+                    ]
+                }
+            }
+        },
+        "transformKQL": {
+            // Update!
+            "value": "source | project TimeGenerated = todatetime(TimeGenerated), AdditionalExtensions, Activity"
+        },
+        "workspaceResourceId": {
+            "value": ""
+        },
+        "tableName": {
+            // Update!
+            "value": ""
+        },
+        "alertName": {
+            // Update!
+            "value": ""
+        },
+        "alertDescription": {
+            // Update!
+            "value": ""
+        },
+        "isEnabled": {
+            "value": false
+        },
+        "metricName": {
+            "value": "RowsReceived_Count"
+        },
+        "operator": {
+            "value": "LessThan"
+        },
+        "threshold": {
+            "value": 1
+        },
+        "timeAggregation": {
+            "value": "Total"
+        },
+        "windowSize": {
+            // Update!
+            "value": "PT1H"
+        },
+        "evaluationFrequency": {
+            // Update (cannot be greater than an hour)!
+            "value": "PT1H"
+        },
+        "actionGroupId": {
+            "value": ""
+        }
+    }
+}
