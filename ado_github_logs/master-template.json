@@ -1,0 +1,181 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "subscriptionId": {
+      "type": "string"
+    },
+    "tenantId": {
+      "type": "string"
+    },
+    "resourceGroupName": {
+      "type": "string"
+    },
+    "workspaceName": {
+      "type": "string"
+    },
+    "DCEName": {
+      "type": "string"
+    },
+    "DCRName": {
+      "type": "string"
+    },
+    "Region": {
+      "type": "string"
+    },
+    "streamName": {
+      "type": "string"
+    },
+    "tableName": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "workspaceResourceId": "[format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.OperationalInsights/workspaces/{2}', parameters('subscriptionId'), parameters('resourceGroupName'), parameters('workspaceName'))]",
+    "dceResourceId": "[format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Insights/dataCollectionEndpoints/{2}', parameters('subscriptionId'), parameters('resourceGroupName'), parameters('DCEName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Insights/dataCollectionEndpoints",
+      "apiVersion": "2022-06-01",
+      "name": "[parameters('DCEName')]",
+      "location": "[parameters('Region')]",
+      "properties": {
+        "networkAcls": {
+          "publicNetworkAccess": "Enabled"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/tables",
+      "apiVersion": "2022-10-01",
+      "name": "[format('{0}/{1}', parameters('workspaceName'), parameters('tableName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/dataCollectionEndpoints', parameters('DCEName'))]"
+      ],
+      "properties": {
+        "plan": "Analytics",
+        "schema": {
+          "name": "[parameters('tableName')]",
+          "columns": [
+            { "name": "Event_Type", "type": "string" },
+            { "name": "ID", "type": "string" },
+            { "name": "Comment", "type": "string" },
+            { "name": "Author", "type": "string" },
+            { "name": "Email", "type": "string" },
+            { "name": "TimeGenerated", "type": "datetime" },
+            { "name": "Repository", "type": "string" },
+            { "name": "State", "type": "string" },
+            { "name": "Visibility", "type": "string" },
+            { "name": "Last_Updated", "type": "datetime" },
+            { "name": "Project", "type": "string" },
+            { "name": "Default_Branch", "type": "string" },
+            { "name": "Publish_ID", "type": "int" }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "apiVersion": "2022-06-01",
+      "name": "[parameters('DCRName')]",
+      "location": "[parameters('Region')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/dataCollectionEndpoints', parameters('DCEName'))]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces/tables', parameters('workspaceName'), parameters('tableName'))]"
+      ],
+      "properties": {
+        "dataCollectionEndpointId": "[variables('dceResourceId')]",
+        "streamDeclarations": {
+          "[parameters('streamName')]": {
+            "columns": [
+              { "name": "Event_Type", "type": "string" },
+              { "name": "ID", "type": "string" },
+              { "name": "Comment", "type": "string" },
+              { "name": "Author", "type": "string" },
+              { "name": "Email", "type": "string" },
+              { "name": "TimeGenerated", "type": "datetime" },
+              { "name": "Repository", "type": "string" },
+              { "name": "State", "type": "string" },
+              { "name": "Visibility", "type": "string" },
+              { "name": "Last_Updated", "type": "datetime" },
+              { "name": "Project", "type": "string" },
+              { "name": "Default_Branch", "type": "string" },
+              { "name": "Publish_ID", "type": "int" }
+            ]
+          }
+        },
+        "dataSources": {
+          "customLogs": [
+            {
+              "name": "CustomJsonSource",
+              "streams": [
+                "[parameters('streamName')]"
+              ],
+              "format": "json",
+              "jsonSettings": {
+                "encoding": "utf8",
+                "rootNode": ""
+              }
+            }
+          ]
+        },
+        "destinations": {
+          "logAnalytics": [
+            {
+              "name": "laDest",
+              "workspaceResourceId": "[variables('workspaceResourceId')]"
+            }
+          ]
+        },
+        "dataFlows": [
+          {
+            "streams": [
+              "[parameters('streamName')]"
+            ],
+            "destinations": [
+              "laDest"
+            ],
+            "transformKql": "source",
+            "outputStream": "[parameters('streamName')]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2023-03-15-preview",
+      "name": "[format('{0}-ingestion-alert', parameters('DCRName'))]",
+      "location": "[parameters('Region')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces/tables', parameters('workspaceName'), parameters('tableName'))]"
+      ],
+      "properties": {
+        "displayName": "[format('{0} - Ingestion Health Alert', parameters('DCRName'))]",
+        "description": "Alert when ingestion into the custom table stops.",
+        "severity": 2,
+        "enabled": true,
+        "evaluationFrequency": "PT1H",
+        "windowSize": "PT1H",
+        "scopes": [
+          "[variables('workspaceResourceId')]"
+        ],
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[format('{0} | summarize Count = count()', parameters('tableName'))]",
+              "timeAggregation": "Total",
+              "operator": "LessThan",
+              "threshold": 1,
+              "metricMeasureColumn": "Count",
+              "failingPeriods": {
+                "minFailingPeriodsToAlert": 1,
+                "numberOfEvaluationPeriods": 1
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
