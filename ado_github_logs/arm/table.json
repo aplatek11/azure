@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspaceName": { "type": "string" },
+    "region": { "type": "string" }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/tables",
+      "apiVersion": "2022-10-01",
+      "name": "[format('{0}/{1}', parameters('workspaceName'), 'ADOPullRequest_CL')]",
+      "location": "[parameters('region')]",
+      "properties": {
+        "schema": {
+          "name": "ADOPullRequest_CL",
+          "columns": [
+            { "name": "TimeGenerated", "type": "datetime" },
+            { "name": "Event_Type", "type": "string" },
+            { "name": "Repository", "type": "string" },
+            { "name": "Project", "type": "string" },
+            { "name": "State", "type": "string" },
+            { "name": "Visibility", "type": "string" },
+            { "name": "Last_Updated_Time", "type": "datetime" },
+            { "name": "Default_Branch", "type": "string" },
+            { "name": "Creator_Name", "type": "string" },
+            { "name": "Creator_Email", "type": "string" },
+            { "name": "Pull_Request_Status", "type": "string" },
+            { "name": "Creation_Date", "type": "datetime" },
+            { "name": "Closed_Date", "type": "datetime" },
+            { "name": "Title", "type": "string" },
+            { "name": "Description", "type": "string" },
+            { "name": "Merged_Status", "type": "string" }
+          ]
+        }
+      }
+    }
+  ]
+}

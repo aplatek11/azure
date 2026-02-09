@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "DCEName": { "type": "string" },
+    "workspaceName": { "type": "string" }
+  },
+  "variables": {
+    "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
+    "region": "[resourceGroup().location]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "apiVersion": "2024-03-11",
+      "name": "prod-pullrequest-dcr",
+      "location": "[variables('region')]",
+      "properties": {
+        "dataCollectionEndpointId": "[resourceId('Microsoft.Insights/dataCollectionEndpoints', parameters('DCEName'))]",
+        "streamDeclarations": {
+          "Custom-ADOPullRequest_CL": {
+            "columns": [
+              { "name": "TimeGenerated", "type": "datetime" },
+              { "name": "Event_Type", "type": "string" },
+              { "name": "Repository", "type": "string" },
+              { "name": "Project", "type": "string" },
+              { "name": "State", "type": "string" },
+              { "name": "Visibility", "type": "string" },
+              { "name": "Last_Updated_Time", "type": "datetime" },
+              { "name": "Default_Branch", "type": "string" },
+              { "name": "Creator_Name", "type": "string" },
+              { "name": "Creator_Email", "type": "string" },
+              { "name": "Pull_Request_Status", "type": "string" },
+              { "name": "Creation_Date", "type": "datetime" },
+              { "name": "Closed_Date", "type": "datetime" },
+              { "name": "Title", "type": "string" },
+              { "name": "Description", "type": "string" },
+              { "name": "Merged_Status", "type": "string" }
+            ]
+          }
+        },
+        "dataSources": {},
+        "destinations": {
+          "logAnalytics": [
+            {
+              "name": "laDest",
+              "workspaceResourceId": "[variables('workspaceId')]"
+            }
+          ]
+        },
+        "dataFlows": [
+          {
+            "streams": [ "Custom-ADOPullRequest_CL" ],
+            "destinations": [ "laDest" ],
+            "transformKql": "source",
+            "outputStream": "Custom-ADOPullRequest_CL"
+          }
+        ]
+      }
+    }
+  ]
+}

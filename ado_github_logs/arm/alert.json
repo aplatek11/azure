@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspaceName": { "type": "string" }
+  },
+  "variables": {
+    "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
+    "region": "[resourceGroup().location]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2023-03-15-preview",
+      "name": "prod-pullrequest-alert",
+      "location": "[variables('region')]",
+      "properties": {
+        "description": "Alert based on ADOPullRequest_CL ingestion",
+        "enabled": true,
+
+        "scopes": [
+          "[variables('workspaceId')]"
+        ],
+
+        "source": {
+          "query": "ADOPullRequest_CL | where TimeGenerated > ago(5m)",
+          "dataSourceId": "[variables('workspaceId')]"
+        },
+
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+
+        "criteria": {
+          "allOf": [
+            {
+              "query": "ADOPullRequest_CL | where TimeGenerated > ago(5m)",
+              "timeAggregation": "Count",
+              "operator": "GreaterThan",
+              "threshold": 0
+            }
+          ]
+        },
+
+        "severity": 3
+      }
+    }
+  ]
+}

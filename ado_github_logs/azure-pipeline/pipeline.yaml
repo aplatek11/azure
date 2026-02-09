@@ -1,0 +1,97 @@
+trigger: none
+
+variables:
+  location: 'eastus'
+  workspaceName: ''
+  workspaceId: ''
+  dcrName: ''
+  dceName: ''
+  alertRuleName: ''
+
+stages:
+
+# -----------------------------
+# 1. Deploy Log Analytics Table
+# -----------------------------
+- stage: Deploy_Table
+  displayName: "Deploy Log Analytics Table"
+  jobs:
+  - job: DeployTable
+    displayName: "Deploy ADOPullRequest_CL Table"
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+    - task: AzureResourceManagerTemplateDeployment@3
+      displayName: "Deploy Table ARM Template"
+      inputs:
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: '$(serviceConnection)'
+        subscriptionId: '$(subscriptionId)'
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: '$(resourceGroup)'
+        location: '$(location)'
+        templateLocation: 'Linked artifact'
+        csmFile: 'arm/table.json'
+        overrideParameters: >
+          -workspaceName "$(workspaceName)"
+          -region "$(location)"
+
+# -----------------------------
+# 2. Deploy DCR
+# -----------------------------
+- stage: Deploy_DCR
+  displayName: "Deploy Data Collection Rule"
+  dependsOn: Deploy_Table
+  jobs:
+  - job: DeployDCR
+    displayName: "Deploy DCR"
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+    - task: AzureResourceManagerTemplateDeployment@3
+      displayName: "Deploy DCR ARM Template"
+      inputs:
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: '$(serviceConnection)'
+        subscriptionId: '$(subscriptionId)'
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: '$(resourceGroup)'
+        location: '$(location)'
+        templateLocation: 'Linked artifact'
+        csmFile: 'arm/dcr.json'
+        overrideParameters: >
+          -dcrName "$(dcrName)"
+          -dceName "$(dceName)"
+          -workspaceId "$(workspaceId)"
+          -region "$(location)"
+
+# -----------------------------
+# 3. Deploy Alert Rule
+# -----------------------------
+- stage: Deploy_Alert
+  displayName: "Deploy Alert Rule"
+  dependsOn: Deploy_DCR
+  jobs:
+  - job: DeployAlert
+    displayName: "Deploy Scheduled Query Alert"
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+    - task: AzureResourceManagerTemplateDeployment@3
+      displayName: "Deploy Alert ARM Template"
+      inputs:
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: '$(serviceConnection)'
+        subscriptionId: '$(subscriptionId)'
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: '$(resourceGroup)'
+        location: '$(location)'
+        templateLocation: 'Linked artifact'
+        csmFile: 'arm/alert.json'
+        overrideParameters: >
+          -workspaceName "$(workspaceName)"
+          -alertRuleName "$(alertRuleName)"
+          -region "$(location)"
